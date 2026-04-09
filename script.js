@@ -1,206 +1,45 @@
-/* ─── Star field ─────────────────────────────────────────────── */
-(function () {
-  const canvas = document.getElementById('stars');
-  const ctx = canvas.getContext('2d');
-  let W, H, stars = [];
-
-  function resize() {
-    W = canvas.width  = window.innerWidth;
-    H = canvas.height = window.innerHeight;
-  }
-
-  function makeStar() {
-    return {
-      x: Math.random() * W,
-      y: Math.random() * H,
-      r: Math.random() * 1.2 + .2,
-      a: Math.random(),
-      speed: Math.random() * .003 + .001,
-      phase: Math.random() * Math.PI * 2,
-    };
-  }
-
-  function init() {
-    resize();
-    stars = Array.from({ length: 180 }, makeStar);
-  }
-
-  function draw(t) {
-    ctx.clearRect(0, 0, W, H);
-    stars.forEach(s => {
-      const alpha = (Math.sin(t * s.speed + s.phase) + 1) / 2 * s.a;
-      ctx.beginPath();
-      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(180,210,255,${alpha})`;
-      ctx.fill();
-    });
-    requestAnimationFrame(draw);
-  }
-
-  window.addEventListener('resize', resize, { passive: true });
-  init();
-  requestAnimationFrame(draw);
-})();
-
-/* ─── Nav scroll ─────────────────────────────────────────────── */
+/* ─── Nav scroll state ───────────────────────────────────────── */
 const nav = document.getElementById('nav');
 window.addEventListener('scroll', () => {
   nav.classList.toggle('scrolled', window.scrollY > 30);
 }, { passive: true });
 
-/* ─── Mobile menu ────────────────────────────────────────────── */
-const toggle   = document.querySelector('.nav-toggle');
-const navLinks = document.querySelector('.nav-links');
-toggle.addEventListener('click', () => {
-  const open = navLinks.classList.toggle('open');
-  const [s1, s2] = toggle.querySelectorAll('span');
-  s1.style.transform = open ? 'rotate(45deg) translate(5px,5px)' : '';
-  s2.style.transform = open ? 'rotate(-45deg) translate(5px,-5px)' : '';
-});
-navLinks.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
-  navLinks.classList.remove('open');
-  toggle.querySelectorAll('span').forEach(s => { s.style.transform = ''; });
-}));
-
 /* ─── Scroll reveal ──────────────────────────────────────────── */
-const observer = new IntersectionObserver((entries) => {
-  entries.forEach((e, i) => {
-    if (e.isIntersecting) {
-      setTimeout(() => e.target.classList.add('visible'), i * 80);
-      observer.unobserve(e.target);
+const revealObserver = new IntersectionObserver((entries) => {
+  entries.forEach((entry, i) => {
+    if (entry.isIntersecting) {
+      setTimeout(() => entry.target.classList.add('visible'), i * 60);
+      revealObserver.unobserve(entry.target);
     }
   });
 }, { threshold: 0.08 });
 
-document.querySelectorAll(
-  '.section-head, .about-grid > *, .sp-card, .exp-item, .clink, .contact-side > *, .contact-title'
-).forEach(el => {
-  el.classList.add('reveal');
-  observer.observe(el);
+function observeReveal(el) {
+  revealObserver.observe(el);
+}
+
+document.querySelectorAll('.stat-item').forEach(observeReveal);
+
+/* ─── Filter buttons ──────────────────────────────────────────── */
+let activeFilter = 'all';
+
+document.getElementById('filterBtns').addEventListener('click', (e) => {
+  const btn = e.target.closest('.filter-btn');
+  if (!btn) return;
+  activeFilter = btn.dataset.filter;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  filterCards();
 });
 
-/* ─── ArtStation portfolio loader ────────────────────────────── */
-/*
- * Fetches projects from ArtStation's public JSON API (client-side).
- * This works in browsers because ArtStation allows CORS on these endpoints.
- * Also fetches individual project details to get high-res images.
- */
-async function loadPortfolio() {
-  const container = document.getElementById('case-studies');
-  const errorEl   = document.getElementById('cs-error');
-
-  // Try the username from the URL the user gave
-  const usernames = ['pavlo_p', 'roll'];
-  let projects = [];
-
-  for (const username of usernames) {
-    try {
-      const res = await fetch(
-        `https://www.artstation.com/users/${username}/projects.json?page=1&per_page=12`
-      );
-      if (!res.ok) continue;
-      const data = await res.json();
-      if (data.data && data.data.length > 0) {
-        projects = data.data;
-        break;
-      }
-    } catch { /* try next username */ }
-  }
-
-  if (!projects.length) {
-    container.innerHTML = '';
-    errorEl.classList.remove('hidden');
-    return;
-  }
-
-  // Fetch detailed info for each project (to get full-res images)
-  const detailed = await Promise.allSettled(
-    projects.slice(0, 8).map(p =>
-      fetch(`https://www.artstation.com/projects/${p.hash_id}.json`)
-        .then(r => r.ok ? r.json() : null)
-        .catch(() => null)
-    )
-  );
-
-  container.innerHTML = '';
-
-  projects.slice(0, 8).forEach((p, i) => {
-    const detail = detailed[i]?.value;
-
-    // Get the best possible cover image
-    const coverImg = p.cover?.medium_image_url
-      || p.cover?.url
-      || p.cover_url
-      || p.smaller_square_cover_url;
-
-    if (!coverImg) return;
-
-    // Get additional images from detail (first 3 assets)
-    const extraImages = [];
-    if (detail && detail.assets) {
-      detail.assets.forEach(a => {
-        if (a.image_url && extraImages.length < 3) {
-          extraImages.push(a.image_url);
-        }
-      });
-    }
-
-    const url   = `https://www.artstation.com/artwork/${p.hash_id}`;
-    const title = esc(p.title || 'Untitled');
-    const num   = String(i + 1).padStart(2, '0');
-    const cats  = (p.medium?.name || p.categories?.[0]?.name || '3D Art');
-    const desc  = detail?.description
-      ? esc(stripHtml(detail.description).slice(0, 150))
-      : 'View project details and full-resolution renders.';
-    const software = detail?.software_items
-      ? detail.software_items.map(s => esc(s.name || s)).slice(0, 4).join(' · ')
-      : '';
-
-    const item = document.createElement('a');
-    item.href      = url;
-    item.target    = '_blank';
-    item.rel       = 'noopener';
-    item.className = 'cs-item reveal';
-
-    // Build gallery thumbnails if we have extras
-    let galleryHtml = '';
-    if (extraImages.length > 0) {
-      galleryHtml = `<div class="cs-gallery">${
-        extraImages.map(img => `<div class="cs-thumb"><img src="${esc(img)}" alt="" loading="lazy" /></div>`).join('')
-      }</div>`;
-    }
-
-    let softwareHtml = '';
-    if (software) {
-      softwareHtml = `<div class="cs-software">${esc(software)}</div>`;
-    }
-
-    item.innerHTML = `
-      <div class="cs-image-wrap">
-        <img src="${esc(coverImg)}" alt="${title}" loading="lazy" />
-      </div>
-      <div class="cs-info">
-        <div class="cs-num">${num}</div>
-        <div class="cs-cat">${esc(cats)}</div>
-        <h3 class="cs-title">${title}</h3>
-        <p class="cs-desc">${desc}</p>
-        ${softwareHtml}
-        ${galleryHtml}
-        <span class="cs-cta">View Project</span>
-      </div>
-    `;
-
-    container.appendChild(item);
-    observer.observe(item);
+function filterCards() {
+  document.querySelectorAll('.proj-card').forEach(card => {
+    const match = activeFilter === 'all' || card.dataset.category === activeFilter;
+    card.classList.toggle('hidden', !match);
   });
 }
 
-function stripHtml(html) {
-  const tmp = document.createElement('div');
-  tmp.innerHTML = html;
-  return tmp.textContent || tmp.innerText || '';
-}
-
+/* ─── Helpers ────────────────────────────────────────────────── */
 function esc(s) {
   return String(s)
     .replace(/&/g, '&amp;')
@@ -209,28 +48,134 @@ function esc(s) {
     .replace(/>/g, '&gt;');
 }
 
-/* ─── Lightbox ───────────────────────────────────────────────── */
-document.addEventListener('click', function (e) {
-  const img = e.target.closest('.cs-thumb img, .cs-image-wrap img');
-  if (!img) return;
+function mapCategory(project) {
+  const combined = [
+    project.title || '',
+    project.medium?.name || '',
+    ...(project.mediums || []).map(m => m.name || ''),
+    ...(project.categories || []).map(c => c.name || ''),
+  ].join(' ').toLowerCase();
 
-  // Only lightbox for thumbnail clicks, not the main card link
-  const isThumb = img.closest('.cs-thumb');
-  if (!isThumb) return;
+  if (combined.includes('portrait') || combined.includes('likeness')) return 'portraits';
+  if (
+    combined.includes('creature') ||
+    combined.includes('spider') ||
+    combined.includes('animal') ||
+    combined.includes('monster')
+  ) return 'creatures';
+  if (
+    combined.includes('hard surface') ||
+    combined.includes('vehicle') ||
+    combined.includes('car') ||
+    combined.includes('mechanical') ||
+    combined.includes('industrial')
+  ) return 'hard-surface';
+  if (
+    combined.includes('environment') ||
+    combined.includes('scene') ||
+    combined.includes('landscape') ||
+    combined.includes('level')
+  ) return 'environment';
+  return 'characters';
+}
 
-  e.preventDefault();
-  e.stopPropagation();
+function getYear(project) {
+  const d = project.created_at || project.updated_at;
+  if (!d) return '';
+  return new Date(d).getFullYear();
+}
 
-  const lb = document.createElement('div');
-  lb.className = 'lightbox';
-  lb.innerHTML = `<img src="${img.src}" alt="" /><button class="lb-close">✕</button>`;
-  document.body.appendChild(lb);
-  requestAnimationFrame(() => lb.classList.add('active'));
+function createCard(project, imgUrl) {
+  const category = mapCategory(project);
+  const year = getYear(project);
 
-  lb.addEventListener('click', () => {
-    lb.classList.remove('active');
-    setTimeout(() => lb.remove(), 300);
+  const a = document.createElement('a');
+  a.href = `https://www.artstation.com/artwork/${project.hash_id}`;
+  a.target = '_blank';
+  a.rel = 'noopener';
+  a.className = 'proj-card reveal';
+  a.dataset.category = category;
+
+  const catLabel = category === 'hard-surface' ? 'Hard Surface' :
+    category.charAt(0).toUpperCase() + category.slice(1);
+  const yearStr = year ? ` · ${year}` : '';
+
+  a.innerHTML = `
+    <img src="${esc(imgUrl)}" alt="${esc(project.title || '')}" loading="lazy" />
+    <div class="proj-gradient"></div>
+    <div class="proj-info">
+      <span class="proj-meta">${esc(catLabel)}${esc(yearStr)}</span>
+      <h3 class="proj-title">${esc(project.title || 'Untitled')}</h3>
+    </div>
+    <div class="proj-hover">
+      <div class="proj-hover-btn">
+        <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </div>
+    </div>
+  `;
+
+  return a;
+}
+
+/* ─── ArtStation loader ───────────────────────────────────────── */
+async function loadPortfolio() {
+  const grid = document.getElementById('projectsGrid');
+  const heroBg = document.getElementById('heroBg');
+
+  let projects = [];
+
+  try {
+    const res = await fetch(
+      'https://www.artstation.com/users/pavlo_p/projects.json?page=1&per_page=12'
+    );
+    if (res.ok) {
+      const data = await res.json();
+      if (data.data?.length) projects = data.data;
+    }
+  } catch { /* fall through */ }
+
+  grid.innerHTML = '';
+
+  if (!projects.length) {
+    grid.innerHTML = `
+      <p style="color:#737373;font-size:14px;grid-column:1/-1;padding:40px 0;">
+        Could not load projects.
+        <a href="https://www.artstation.com/pavlo_p" target="_blank"
+           style="color:#fff;text-decoration:underline;text-underline-offset:3px;">
+          View on ArtStation ↗
+        </a>
+      </p>`;
+    return;
+  }
+
+  // Set hero background from first project's cover
+  const firstCover =
+    projects[0]?.cover?.medium_image_url ||
+    projects[0]?.cover_url ||
+    projects[0]?.smaller_square_cover_url;
+  if (firstCover && heroBg) {
+    heroBg.style.backgroundImage = `url(${firstCover})`;
+  }
+
+  projects.slice(0, 12).forEach((p) => {
+    const imgUrl =
+      p.cover?.medium_image_url ||
+      p.cover_url ||
+      p.smaller_square_cover_url;
+    if (!imgUrl) return;
+
+    const card = createCard(p, imgUrl);
+
+    // Apply current filter
+    if (activeFilter !== 'all' && card.dataset.category !== activeFilter) {
+      card.classList.add('hidden');
+    }
+
+    grid.appendChild(card);
+    observeReveal(card);
   });
-});
+}
 
 loadPortfolio();
