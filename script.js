@@ -22,7 +22,7 @@
 
   function init() {
     resize();
-    stars = Array.from({ length: 200 }, makeStar);
+    stars = Array.from({ length: 180 }, makeStar);
   }
 
   function draw(t) {
@@ -70,7 +70,7 @@ const observer = new IntersectionObserver((entries) => {
       observer.unobserve(e.target);
     }
   });
-}, { threshold: 0.1 });
+}, { threshold: 0.08 });
 
 document.querySelectorAll(
   '.section-head, .about-grid > *, .sp-card, .exp-item, .clink, .contact-side > *, .contact-title'
@@ -79,62 +79,126 @@ document.querySelectorAll(
   observer.observe(el);
 });
 
-/* ─── ArtStation loader ──────────────────────────────────────── */
-async function loadProjects() {
+/* ─── ArtStation portfolio loader ────────────────────────────── */
+/*
+ * Fetches projects from ArtStation's public JSON API (client-side).
+ * This works in browsers because ArtStation allows CORS on these endpoints.
+ * Also fetches individual project details to get high-res images.
+ */
+async function loadPortfolio() {
   const container = document.getElementById('case-studies');
   const errorEl   = document.getElementById('cs-error');
 
-  try {
-    const res = await fetch(
-      'https://www.artstation.com/users/pavlo_p/projects.json?page=1&per_page=10',
-      { headers: { Accept: 'application/json' } }
-    );
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  // Try the username from the URL the user gave
+  const usernames = ['pavlo_p', 'roll'];
+  let projects = [];
 
-    const data     = await res.json();
-    const projects = (data.data || []).filter(p => p.cover_url || p.smaller_square_cover_url);
+  for (const username of usernames) {
+    try {
+      const res = await fetch(
+        `https://www.artstation.com/users/${username}/projects.json?page=1&per_page=12`
+      );
+      if (!res.ok) continue;
+      const data = await res.json();
+      if (data.data && data.data.length > 0) {
+        projects = data.data;
+        break;
+      }
+    } catch { /* try next username */ }
+  }
 
-    if (!projects.length) throw new Error('empty');
-
-    container.innerHTML = '';
-
-    projects.slice(0, 8).forEach((p, i) => {
-      const img   = p.cover_url || p.smaller_square_cover_url;
-      const url   = `https://www.artstation.com/artwork/${p.hash_id}`;
-      const title = esc(p.title || 'Untitled');
-      const num   = String(i + 1).padStart(2, '0');
-
-      // Build medium list from categories if available
-      const cats = (p.categories || []).map(c => c.name).join(' · ') || '3D Asset';
-
-      const item = document.createElement('a');
-      item.href    = url;
-      item.target  = '_blank';
-      item.rel     = 'noopener';
-      item.className = 'cs-item reveal';
-
-      item.innerHTML = `
-        <div class="cs-image-wrap">
-          <img src="${esc(img)}" alt="${title}" loading="lazy" />
-        </div>
-        <div class="cs-info">
-          <div class="cs-num">${num}</div>
-          <div class="cs-cat">${esc(cats)}</div>
-          <h3 class="cs-title">${title}</h3>
-          <p class="cs-desc">View this project in full detail on ArtStation.</p>
-          <span class="cs-cta">View Project</span>
-        </div>
-      `;
-
-      container.appendChild(item);
-      observer.observe(item);
-    });
-
-  } catch (err) {
-    console.warn('ArtStation fetch failed:', err.message);
+  if (!projects.length) {
     container.innerHTML = '';
     errorEl.classList.remove('hidden');
+    return;
   }
+
+  // Fetch detailed info for each project (to get full-res images)
+  const detailed = await Promise.allSettled(
+    projects.slice(0, 8).map(p =>
+      fetch(`https://www.artstation.com/projects/${p.hash_id}.json`)
+        .then(r => r.ok ? r.json() : null)
+        .catch(() => null)
+    )
+  );
+
+  container.innerHTML = '';
+
+  projects.slice(0, 8).forEach((p, i) => {
+    const detail = detailed[i]?.value;
+
+    // Get the best possible cover image
+    const coverImg = p.cover?.medium_image_url
+      || p.cover?.url
+      || p.cover_url
+      || p.smaller_square_cover_url;
+
+    if (!coverImg) return;
+
+    // Get additional images from detail (first 3 assets)
+    const extraImages = [];
+    if (detail && detail.assets) {
+      detail.assets.forEach(a => {
+        if (a.image_url && extraImages.length < 3) {
+          extraImages.push(a.image_url);
+        }
+      });
+    }
+
+    const url   = `https://www.artstation.com/artwork/${p.hash_id}`;
+    const title = esc(p.title || 'Untitled');
+    const num   = String(i + 1).padStart(2, '0');
+    const cats  = (p.medium?.name || p.categories?.[0]?.name || '3D Art');
+    const desc  = detail?.description
+      ? esc(stripHtml(detail.description).slice(0, 150))
+      : 'View project details and full-resolution renders.';
+    const software = detail?.software_items
+      ? detail.software_items.map(s => esc(s.name || s)).slice(0, 4).join(' · ')
+      : '';
+
+    const item = document.createElement('a');
+    item.href      = url;
+    item.target    = '_blank';
+    item.rel       = 'noopener';
+    item.className = 'cs-item reveal';
+
+    // Build gallery thumbnails if we have extras
+    let galleryHtml = '';
+    if (extraImages.length > 0) {
+      galleryHtml = `<div class="cs-gallery">${
+        extraImages.map(img => `<div class="cs-thumb"><img src="${esc(img)}" alt="" loading="lazy" /></div>`).join('')
+      }</div>`;
+    }
+
+    let softwareHtml = '';
+    if (software) {
+      softwareHtml = `<div class="cs-software">${esc(software)}</div>`;
+    }
+
+    item.innerHTML = `
+      <div class="cs-image-wrap">
+        <img src="${esc(coverImg)}" alt="${title}" loading="lazy" />
+      </div>
+      <div class="cs-info">
+        <div class="cs-num">${num}</div>
+        <div class="cs-cat">${esc(cats)}</div>
+        <h3 class="cs-title">${title}</h3>
+        <p class="cs-desc">${desc}</p>
+        ${softwareHtml}
+        ${galleryHtml}
+        <span class="cs-cta">View Project</span>
+      </div>
+    `;
+
+    container.appendChild(item);
+    observer.observe(item);
+  });
+}
+
+function stripHtml(html) {
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  return tmp.textContent || tmp.innerText || '';
 }
 
 function esc(s) {
@@ -145,4 +209,28 @@ function esc(s) {
     .replace(/>/g, '&gt;');
 }
 
-loadProjects();
+/* ─── Lightbox ───────────────────────────────────────────────── */
+document.addEventListener('click', function (e) {
+  const img = e.target.closest('.cs-thumb img, .cs-image-wrap img');
+  if (!img) return;
+
+  // Only lightbox for thumbnail clicks, not the main card link
+  const isThumb = img.closest('.cs-thumb');
+  if (!isThumb) return;
+
+  e.preventDefault();
+  e.stopPropagation();
+
+  const lb = document.createElement('div');
+  lb.className = 'lightbox';
+  lb.innerHTML = `<img src="${img.src}" alt="" /><button class="lb-close">✕</button>`;
+  document.body.appendChild(lb);
+  requestAnimationFrame(() => lb.classList.add('active'));
+
+  lb.addEventListener('click', () => {
+    lb.classList.remove('active');
+    setTimeout(() => lb.remove(), 300);
+  });
+});
+
+loadPortfolio();
