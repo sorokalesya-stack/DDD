@@ -1,0 +1,6 @@
+admin/
+node_modules/
+server.js
+package.json
+config.json
+.env

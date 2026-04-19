@@ -1,0 +1,150 @@
+{
+  "site": {
+    "name": "Pavlo Pukha",
+    "tagline": "Senior 3D Artist",
+    "bio": "Senior 3D Artist. 15+ years across games, VR/AR, and product visualization. Characters, hard surface, environments — full pipeline.",
+    "heroImage": "",
+    "status": "Available for work",
+    "location": "Lviv, Ukraine",
+    "email": "pavel.ddd@gmail.com",
+    "artstation": "https://www.artstation.com/roll",
+    "stats": [
+      { "value": "15+", "label": "Years of Experience" },
+      { "value": "7",   "label": "Shipped Game Titles" },
+      { "value": "1000+", "label": "Assets Delivered" },
+      { "value": "3",   "label": "Studios · VR/AR · Games" }
+    ]
+  },
+  "projects": [
+    {
+      "id": "samurai",
+      "title": "Samurai",
+      "description": "17th Century Warrior",
+      "fullDescription": "A 17th century Samurai model crafted with historical accuracy and creative design liberties. Modeled over many afterwork evenings and weekends — a test of patience and craft. Full high-to-low poly pipeline, ZBrush sculpting, and PBR texturing in Substance Painter.",
+      "tags": ["Characters"],
+      "year": "2018",
+      "layout": "hero-gallery",
+      "thumbnail": "",
+      "images": [],
+      "software": ["ZBrush", "3ds Max", "Substance Painter", "Marmoset Toolbag"],
+      "artStationUrl": "https://www.artstation.com/artwork/2NeOA"
+    },
+    {
+      "id": "trueno",
+      "title": "Toyota Sprinter Trueno AE86",
+      "description": "1985 Hard Surface Model",
+      "fullDescription": "High-fidelity hard surface recreation of the iconic AE86 Trueno. Full exterior and partial interior detail, game-ready topology, PBR materials.",
+      "tags": ["Hard Surface"],
+      "year": "2024",
+      "layout": "hero-gallery",
+      "thumbnail": "",
+      "images": [],
+      "software": ["Blender", "Substance Painter", "Marmoset Toolbag"],
+      "artStationUrl": ""
+    },
+    {
+      "id": "knight",
+      "title": "Stylised Knight",
+      "description": "Game-Ready Character",
+      "fullDescription": "Stylized game-ready knight character with full armor set. Designed for mobile/indie game pipelines with optimized poly count and atlased textures.",
+      "tags": ["Characters"],
+      "year": "2024",
+      "layout": "hero-gallery",
+      "thumbnail": "",
+      "images": [],
+      "software": ["ZBrush", "Blender", "Substance Painter"],
+      "artStationUrl": ""
+    },
+    {
+      "id": "chars-sketches",
+      "title": "Misc Characters & Sketches",
+      "description": "Practice & Exploration",
+      "fullDescription": "A collection of character studies, quick sculpts, and design explorations. Primarily ZBrush-based, covering anatomy practice and stylization experiments.",
+      "tags": ["Characters"],
+      "year": "2024",
+      "layout": "grid",
+      "thumbnail": "",
+      "images": [],
+      "software": ["ZBrush", "Blender"],
+      "artStationUrl": ""
+    },
+    {
+      "id": "portrait-girl",
+      "title": "Girl's Portrait",
+      "description": "Stylized Character Sculpt",
+      "fullDescription": "Stylized portrait sculpt exploring expressive character design. Focus on surface detail, skin texture, and hair groom in a semi-realistic style.",
+      "tags": ["Portraits"],
+      "year": "2019",
+      "layout": "hero-gallery",
+      "thumbnail": "",
+      "images": [],
+      "software": ["ZBrush", "Blender", "Substance Painter"],
+      "artStationUrl": ""
+    },
+    {
+      "id": "till-lindemann",
+      "title": "Till Lindemann",
+      "description": "Likeness Portrait Sculpt",
+      "fullDescription": "Likeness portrait of Till Lindemann. Focused on accurate facial structure, skin detail, and capturing the subject's distinctive features.",
+      "tags": ["Portraits"],
+      "year": "2022",
+      "layout": "hero-gallery",
+      "thumbnail": "",
+      "images": [],
+      "software": ["ZBrush", "Blender", "Substance Painter"],
+      "artStationUrl": ""
+    },
+    {
+      "id": "black-widow",
+      "title": "Black Widow Spider",
+      "description": "Creature / Prop Model",
+      "fullDescription": "Detailed creature model of a Black Widow spider. High-poly sculpt baked down to a game-ready mesh with PBR textures.",
+      "tags": ["Creatures"],
+      "year": "2018",
+      "layout": "hero-gallery",
+      "thumbnail": "",
+      "images": [],
+      "software": ["ZBrush", "3ds Max", "Substance Painter"],
+      "artStationUrl": ""
+    },
+    {
+      "id": "comic-girl",
+      "title": "Comic Project Girl",
+      "description": "Stylized Character Art",
+      "fullDescription": "Stylized comic-style character model. Exaggerated proportions and bold silhouette designed for a graphic novel / animated series aesthetic.",
+      "tags": ["Characters"],
+      "year": "2024",
+      "layout": "hero-gallery",
+      "thumbnail": "",
+      "images": [],
+      "software": ["ZBrush", "Blender", "Substance Painter"],
+      "artStationUrl": ""
+    },
+    {
+      "id": "kiki",
+      "title": "Kiki's Delivery Service",
+      "description": "Fan Art Character",
+      "fullDescription": "Fan art tribute to Ghibli's Kiki's Delivery Service. Stylized character model capturing the warmth and charm of the original anime design.",
+      "tags": ["Characters"],
+      "year": "2024",
+      "layout": "hero-gallery",
+      "thumbnail": "",
+      "images": [],
+      "software": ["ZBrush", "Blender", "Substance Painter"],
+      "artStationUrl": ""
+    },
+    {
+      "id": "environment",
+      "title": "Stylized Environment",
+      "description": "Game-Ready Scene",
+      "fullDescription": "Stylized game-ready environment scene. Modular asset kit with full PBR material suite, optimized for real-time rendering in Unreal Engine.",
+      "tags": ["Environment"],
+      "year": "2024",
+      "layout": "strips",
+      "thumbnail": "",
+      "images": [],
+      "software": ["Blender", "Substance Painter", "Unreal Engine"],
+      "artStationUrl": ""
+    }
+  ]
+}
